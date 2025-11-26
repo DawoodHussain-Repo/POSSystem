@@ -1,16 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Package, RotateCcw, LogOut, DollarSign, TrendingUp } from 'lucide-react';
+import { ShoppingCart, Package, RotateCcw, LogOut, DollarSign, TrendingUp, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Aurora from '@/components/Aurora';
+import { getTodayStats } from '@/lib/api/transactions';
 
 export default function CashierDashboard() {
     const router = useRouter();
+    const [stats, setStats] = useState({ totalSales: 0, transactionCount: 0, activeRentals: 0 });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadStats();
+    }, []);
+
+    const loadStats = async () => {
+        try {
+            const data = await getTodayStats();
+            setStats(data);
+        } catch (error) {
+            console.error('Failed to load stats:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-sage-50">
-            <header className="bg-white border-b border-cream-200 shadow-sm">
+        <div className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-sage-50 relative">
+            <Aurora colorStops={["#C2A68C", "#5D866C", "#E6D8C3"]} blend={0.2} amplitude={0.7} speed={0.5} />
+            <header className="bg-white/90 backdrop-blur-sm border-b border-cream-200 shadow-sm relative z-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -35,59 +55,69 @@ export default function CashierDashboard() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="bg-white rounded-lg shadow-md border border-cream-200 p-6"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-sage-600 mb-1">Today's Sales</p>
-                                <p className="text-2xl font-bold text-sage-800">$2,450.00</p>
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 text-sage-600 animate-spin mr-3" />
+                        <span className="text-sage-600">Loading stats...</span>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
+                            whileHover={{ y: -5, scale: 1.02 }}
+                            className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-cream-200 p-6 hover:shadow-xl transition-all"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-sage-600 mb-1">Today's Sales</p>
+                                    <p className="text-2xl font-bold text-sage-800">${stats.totalSales.toFixed(2)}</p>
+                                </div>
+                                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <DollarSign className="w-6 h-6 text-green-600" />
+                                </div>
                             </div>
-                            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                <DollarSign className="w-6 h-6 text-green-600" />
-                            </div>
-                        </div>
-                    </motion.div>
+                        </motion.div>
 
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="bg-white rounded-lg shadow-md border border-cream-200 p-6"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-sage-600 mb-1">Transactions</p>
-                                <p className="text-2xl font-bold text-sage-800">47</p>
+                        <motion.div
+                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+                            whileHover={{ y: -5, scale: 1.02 }}
+                            className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-cream-200 p-6 hover:shadow-xl transition-all"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-sage-600 mb-1">Transactions</p>
+                                    <p className="text-2xl font-bold text-sage-800">{stats.transactionCount}</p>
+                                </div>
+                                <div className="w-12 h-12 bg-sage-100 rounded-lg flex items-center justify-center">
+                                    <TrendingUp className="w-6 h-6 text-sage-600" />
+                                </div>
                             </div>
-                            <div className="w-12 h-12 bg-sage-100 rounded-lg flex items-center justify-center">
-                                <TrendingUp className="w-6 h-6 text-sage-600" />
-                            </div>
-                        </div>
-                    </motion.div>
+                        </motion.div>
 
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="bg-white rounded-lg shadow-md border border-cream-200 p-6"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-sage-600 mb-1">Active Rentals</p>
-                                <p className="text-2xl font-bold text-sage-800">12</p>
+                        <motion.div
+                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+                            whileHover={{ y: -5, scale: 1.02 }}
+                            className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-cream-200 p-6 hover:shadow-xl transition-all"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-sage-600 mb-1">Active Rentals</p>
+                                    <p className="text-2xl font-bold text-sage-800">{stats.activeRentals}</p>
+                                </div>
+                                <div className="w-12 h-12 bg-cream-200 rounded-lg flex items-center justify-center">
+                                    <Package className="w-6 h-6 text-cream-500" />
+                                </div>
                             </div>
-                            <div className="w-12 h-12 bg-cream-200 rounded-lg flex items-center justify-center">
-                                <Package className="w-6 h-6 text-cream-500" />
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
+                        </motion.div>
+                    </div>
+                )}
 
                 <div className="mb-8">
                     <h2 className="text-xl font-semibold text-sage-800 mb-4">Start New Transaction</h2>

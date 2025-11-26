@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS rental_products (
 -- Customers Table
 CREATE TABLE IF NOT EXISTS customers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    phone VARCHAR(10) UNIQUE NOT NULL,
+    phone VARCHAR(15) UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -123,10 +123,10 @@ CREATE TABLE IF NOT EXISTS employee_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert default employees
+-- Insert default admin (password is bcrypt hashed)
+-- Admin: username=dawood90999, password=12E2d786@2
 INSERT INTO employees (username, name, password, position) VALUES
-('110001', 'Harry Larry', '1', 'Admin'),
-('110002', 'Debra Cooper', 'lehigh2016', 'Cashier')
+('dawood90999', 'Dawood Hussain', '$2b$10$srv8WXtA1TdKWmCvYGIWAeLLgtbkHNMoGBq5g97OyEP89agPUv5IW', 'Admin')
 ON CONFLICT (username) DO NOTHING;
 
 -- Insert sample products
@@ -201,3 +201,56 @@ CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
 
 CREATE TRIGGER update_rental_products_updated_at BEFORE UPDATE ON rental_products
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable Row Level Security (RLS) on all tables
+ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rental_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sales_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sales_transaction_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rental_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rental_transaction_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE return_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE return_transaction_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE employee_logs ENABLE ROW LEVEL SECURITY;
+
+-- Create policies to allow all operations (for development)
+-- In production, you should restrict these based on authenticated users
+
+-- Employees policies
+CREATE POLICY "Allow all operations on employees" ON employees FOR ALL USING (true) WITH CHECK (true);
+
+-- Products policies
+CREATE POLICY "Allow all operations on products" ON products FOR ALL USING (true) WITH CHECK (true);
+
+-- Rental products policies
+CREATE POLICY "Allow all operations on rental_products" ON rental_products FOR ALL USING (true) WITH CHECK (true);
+
+-- Customers policies
+CREATE POLICY "Allow all operations on customers" ON customers FOR ALL USING (true) WITH CHECK (true);
+
+-- Sales transactions policies
+CREATE POLICY "Allow all operations on sales_transactions" ON sales_transactions FOR ALL USING (true) WITH CHECK (true);
+
+-- Sales transaction items policies
+CREATE POLICY "Allow all operations on sales_transaction_items" ON sales_transaction_items FOR ALL USING (true) WITH CHECK (true);
+
+-- Rental transactions policies
+CREATE POLICY "Allow all operations on rental_transactions" ON rental_transactions FOR ALL USING (true) WITH CHECK (true);
+
+-- Rental transaction items policies
+CREATE POLICY "Allow all operations on rental_transaction_items" ON rental_transaction_items FOR ALL USING (true) WITH CHECK (true);
+
+-- Return transactions policies
+CREATE POLICY "Allow all operations on return_transactions" ON return_transactions FOR ALL USING (true) WITH CHECK (true);
+
+-- Return transaction items policies
+CREATE POLICY "Allow all operations on return_transaction_items" ON return_transaction_items FOR ALL USING (true) WITH CHECK (true);
+
+-- Coupons policies
+CREATE POLICY "Allow all operations on coupons" ON coupons FOR ALL USING (true) WITH CHECK (true);
+
+-- Employee logs policies
+CREATE POLICY "Allow all operations on employee_logs" ON employee_logs FOR ALL USING (true) WITH CHECK (true);

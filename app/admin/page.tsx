@@ -1,58 +1,98 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, UserPlus, Edit, Trash2, LogOut, ShoppingCart } from 'lucide-react';
+import { Users, UserPlus, LogOut, ShoppingCart, Loader2, Receipt } from 'lucide-react';
 import { motion } from 'framer-motion';
-import UpdateEmployeeModal from '@/components/UpdateEmployeeModal';
-
-interface Employee {
-    id: string;
-    username: string;
-    name: string;
-    position: string;
-}
+import Aurora from '@/components/Aurora';
+import Notification from '@/components/ui/Notification';
+import EmployeeCard from '@/components/admin/EmployeeCard';
+import EmployeeModal from '@/components/admin/EmployeeModal';
+import { getAllEmployees, addEmployee, updateEmployee, deleteEmployee } from '@/lib/api/employees';
+import type { Employee } from '@/lib/types';
 
 export default function AdminDashboard() {
     const router = useRouter();
-    const [employees, setEmployees] = useState<Employee[]>([
-        { id: '110001', username: '110001', name: 'Harry Larry', position: 'Admin' },
-        { id: '110002', username: '110002', name: 'Debra Cooper', position: 'Cashier' },
-    ]);
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showUpdateModal, setShowUpdateModal] = useState(false);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    const [notification, setNotification] = useState({ type: 'success' as 'success' | 'error' | 'warning', message: '', visible: false });
 
-    const handleLogout = () => router.push('/');
-    const handleSwitchToCashier = () => router.push('/cashier');
-    const handleDeleteEmployee = (id: string) => {
-        if (confirm('Are you sure you want to delete this employee?')) {
-            setEmployees(employees.filter(emp => emp.id !== id));
+    useEffect(() => { loadEmployees(); }, []);
+
+    const [dbError, setDbError] = useState<string | null>(null);
+
+    const loadEmployees = async () => {
+        setLoading(true);
+        setDbError(null);
+        try {
+            const data = await getAllEmployees();
+            setEmployees(data);
+        } catch (error: any) {
+            if (error.message?.includes('Database not initialized')) {
+                setDbError(error.message);
+            } else {
+                showNotification('error', 'Failed to load employees');
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleUpdateEmployee = (data: { username: string; name: string; password: string; position: string }) => {
-        const empIndex = employees.findIndex(e => e.username === data.username);
-        if (empIndex === -1) {
-            alert('Employee with such username doesn\'t exist');
-            return;
+    const showNotification = (type: 'success' | 'error', message: string) => {
+        setNotification({ type, message, visible: true });
+        setTimeout(() => setNotification(n => ({ ...n, visible: false })), 3000);
+    };
+
+    const handleAdd = () => {
+        setModalMode('add');
+        setSelectedEmployee(null);
+        setModalOpen(true);
+    };
+
+    const handleEdit = (employee: Employee) => {
+        setModalMode('edit');
+        setSelectedEmployee(employee);
+        setModalOpen(true);
+    };
+
+    const handleDelete = async (employee: Employee) => {
+        if (!confirm(`Delete ${employee.name}?`)) return;
+        try {
+            await deleteEmployee(employee.username);
+            setEmployees(employees.filter(e => e.username !== employee.username));
+            showNotification('success', `${employee.name} deleted`);
+        } catch {
+            showNotification('error', 'Failed to delete employee');
         }
-        const updated = [...employees];
-        updated[empIndex] = {
-            ...updated[empIndex],
-            name: data.name,
-            position: data.position
-        };
-        setEmployees(updated);
-        alert('Employee updated successfully!');
+    };
+
+    const handleSubmit = async (data: { name: string; username: string; password: string; position: 'Admin' | 'Cashier' }) => {
+        if (modalMode === 'add') {
+            const emp = await addEmployee({ name: data.name, username: data.username, password: data.password, position: data.position });
+            setEmployees([emp, ...employees]);
+            showNotification('success', `${data.name} added successfully`);
+        } else if (selectedEmployee) {
+            const updates: Partial<Employee> = { name: data.name, position: data.position };
+            if (data.password) updates.password = data.password;
+            const emp = await updateEmployee(selectedEmployee.username, updates);
+            setEmployees(employees.map(e => e.username === selectedEmployee.username ? emp : e));
+            showNotification('success', `${data.name} updated successfully`);
+        }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-sage-50">
-            <header className="bg-white border-b border-cream-200 shadow-sm">
+        <div className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-sage-50 relative">
+            <Aurora colorStops={["#5D866C", "#C2A68C", "#E6D8C3"]} blend={0.2} amplitude={0.6} speed={0.4} />
+            <Notification type={notification.type} message={notification.message} isVisible={notification.visible} />
+
+            <header className="bg-white/90 backdrop-blur-sm border-b border-cream-200 shadow-sm relative z-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-sage-500 to-sage-600 rounded-lg flex items-center justify-center">
+                            <div className="w-12 h-12 bg-gradient-to-br from-sage-500 to-sage-600 rounded-lg flex items-center justify-center shadow-lg">
                                 <Users className="w-6 h-6 text-white" />
                             </div>
                             <div>
@@ -61,160 +101,56 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleSwitchToCashier}
-                                className="flex items-center space-x-2 px-4 py-2 bg-cream-200 text-sage-700 rounded-lg hover:bg-cream-300 transition-all"
-                            >
-                                <ShoppingCart className="w-4 h-4" />
-                                <span>Cashier View</span>
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                onClick={() => router.push('/admin/transactions')}
+                                className="flex items-center space-x-2 px-4 py-2 bg-sage-100 text-sage-700 rounded-lg hover:bg-sage-200 transition-all">
+                                <Receipt className="w-4 h-4" /><span>Transactions</span>
                             </motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleLogout}
-                                className="flex items-center space-x-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                <span>Logout</span>
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                onClick={() => router.push('/cashier')}
+                                className="flex items-center space-x-2 px-4 py-2 bg-cream-200 text-sage-700 rounded-lg hover:bg-cream-300 transition-all">
+                                <ShoppingCart className="w-4 h-4" /><span>Cashier</span>
+                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                onClick={() => router.push('/')}
+                                className="flex items-center space-x-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all">
+                                <LogOut className="w-4 h-4" /><span>Logout</span>
                             </motion.button>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
                 <div className="mb-6 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-sage-800">Employee List</h2>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowAddModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-sage-500 to-sage-600 text-white rounded-lg hover:from-sage-600 hover:to-sage-700 transition-all shadow-lg"
-                    >
-                        <UserPlus className="w-4 h-4" />
-                        <span>Add Employee</span>
+                    <h2 className="text-xl font-semibold text-sage-800">Employees ({employees.length})</h2>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleAdd}
+                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-sage-500 to-sage-600 text-white rounded-lg shadow-lg">
+                        <UserPlus className="w-4 h-4" /><span>Add Employee</span>
                     </motion.button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {employees.map((employee, index) => (
-                        <motion.div
-                            key={employee.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            whileHover={{ y: -5 }}
-                            className="bg-white rounded-lg shadow-md border border-cream-200 p-6 hover:shadow-lg transition-all"
-                        >
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center space-x-3">
-                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${employee.position === 'Admin' ? 'bg-sage-100' : 'bg-cream-200'
-                                        }`}>
-                                        <Users className={`w-6 h-6 ${employee.position === 'Admin' ? 'text-sage-600' : 'text-cream-500'
-                                            }`} />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-sage-800">{employee.name}</h3>
-                                        <p className="text-sm text-sage-600">ID: {employee.username}</p>
-                                    </div>
-                                </div>
-                                <span className={`px-3 py-1 rounded-lg text-xs font-medium ${employee.position === 'Admin'
-                                    ? 'bg-sage-100 text-sage-700'
-                                    : 'bg-cream-200 text-sage-700'
-                                    }`}>
-                                    {employee.position}
-                                </span>
-                            </div>
-
-                            <div className="flex space-x-2">
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => setShowUpdateModal(true)}
-                                    className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-sage-50 text-sage-700 rounded-lg hover:bg-sage-100 transition-all"
-                                >
-                                    <Edit className="w-4 h-4" />
-                                    <span>Edit</span>
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => handleDeleteEmployee(employee.id)}
-                                    className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-all"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    <span>Delete</span>
-                                </motion.button>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+                {loading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <Loader2 className="w-8 h-8 text-sage-600 animate-spin" />
+                        <span className="ml-3 text-sage-600">Loading...</span>
+                    </div>
+                ) : employees.length === 0 ? (
+                    <div className="text-center py-20">
+                        <Users className="w-16 h-16 text-cream-300 mx-auto mb-4" />
+                        <p className="text-sage-500">No employees found</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {employees.map((emp, i) => (
+                            <EmployeeCard key={emp.id} employee={emp} index={i} onEdit={handleEdit} onDelete={handleDelete} />
+                        ))}
+                    </div>
+                )}
             </main>
 
-            {showUpdateModal && (
-                <UpdateEmployeeModal
-                    onClose={() => setShowUpdateModal(false)}
-                    onUpdate={handleUpdateEmployee}
-                />
-            )}
-
-            {showAddModal && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-                >
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6"
-                    >
-                        <h3 className="text-xl font-bold text-sage-800 mb-4">Add New Employee</h3>
-                        <form className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-sage-700 mb-2">Full Name</label>
-                                <input type="text" className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:ring-2 focus:ring-sage-500 bg-cream-50" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-sage-700 mb-2">Username</label>
-                                <input type="text" className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:ring-2 focus:ring-sage-500 bg-cream-50" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-sage-700 mb-2">Password</label>
-                                <input type="password" className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:ring-2 focus:ring-sage-500 bg-cream-50" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-sage-700 mb-2">Position</label>
-                                <select className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:ring-2 focus:ring-sage-500 bg-cream-50">
-                                    <option>Cashier</option>
-                                    <option>Admin</option>
-                                </select>
-                            </div>
-                            <div className="flex space-x-3 pt-4">
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    type="button"
-                                    onClick={() => setShowAddModal(false)}
-                                    className="flex-1 px-4 py-2 border border-cream-300 text-sage-700 rounded-lg hover:bg-cream-50"
-                                >
-                                    Cancel
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 bg-gradient-to-r from-sage-500 to-sage-600 text-white rounded-lg hover:from-sage-600 hover:to-sage-700"
-                                >
-                                    Add Employee
-                                </motion.button>
-                            </div>
-                        </form>
-                    </motion.div>
-                </motion.div>
-            )}
+            <EmployeeModal isOpen={modalOpen} mode={modalMode} employee={selectedEmployee}
+                onClose={() => setModalOpen(false)} onSubmit={handleSubmit} />
         </div>
     );
 }

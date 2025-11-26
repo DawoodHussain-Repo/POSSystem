@@ -2,25 +2,43 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Package, Users } from 'lucide-react';
+import { ShoppingCart, Package, Users, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { loginEmployee } from '@/lib/api/employees';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (username === 'admin' && password === '1') {
-      router.push('/admin');
-    } else if (username === 'cashier' && password === 'lehigh2016') {
-      router.push('/cashier');
-    } else {
-      setError('Invalid username or password');
+    try {
+      const employee = await loginEmployee(username, password);
+
+      if (!employee) {
+        setError('Invalid username or password');
+        setLoading(false);
+        return;
+      }
+
+      // Store employee info in session storage
+      sessionStorage.setItem('employee', JSON.stringify(employee));
+
+      // Redirect based on position
+      if (employee.position === 'Admin') {
+        router.push('/admin');
+      } else {
+        router.push('/cashier');
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+      setLoading(false);
     }
   };
 
@@ -97,9 +115,17 @@ export default function LoginPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full bg-gradient-to-r from-sage-500 to-sage-600 text-white py-3 rounded-lg font-semibold hover:from-sage-600 hover:to-sage-700 transition-all shadow-lg hover:shadow-xl"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-sage-500 to-sage-600 text-white py-3 rounded-lg font-semibold hover:from-sage-600 hover:to-sage-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              Sign In
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </motion.button>
           </form>
 
