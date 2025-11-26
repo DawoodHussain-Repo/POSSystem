@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Receipt, ShoppingBag, Package, RotateCcw, Loader2 } from 'lucide-react';
+import { ArrowLeft, Receipt, ShoppingBag, Package, RotateCcw, Loader2, DollarSign, TrendingUp, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Aurora from '@/components/Aurora';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 
 interface Transaction {
@@ -16,7 +19,7 @@ interface Transaction {
     created_at: string;
 }
 
-export default function TransactionsPage() {
+function TransactionsPageContent() {
     const router = useRouter();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
@@ -42,9 +45,7 @@ export default function TransactionsPage() {
             setTransactions(all);
         } catch (error) {
             console.error('Failed to load transactions:', error);
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
     const filtered = filter === 'all' ? transactions : transactions.filter(t => t.type === filter);
@@ -56,107 +57,161 @@ export default function TransactionsPage() {
 
     const getIcon = (type: string) => {
         switch (type) {
-            case 'sale': return <ShoppingBag className="w-5 h-5 text-green-600" />;
-            case 'rental': return <Package className="w-5 h-5 text-cream-500" />;
-            case 'return': return <RotateCcw className="w-5 h-5 text-sage-600" />;
+            case 'sale': return <ShoppingBag className="w-5 h-5 text-emerald-600" />;
+            case 'rental': return <Package className="w-5 h-5 text-amber-600" />;
+            case 'return': return <RotateCcw className="w-5 h-5 text-indigo-600" />;
         }
     };
 
-    const getColor = (type: string) => {
+    const getBadgeVariant = (type: string) => {
         switch (type) {
-            case 'sale': return 'bg-green-50 border-green-200';
-            case 'rental': return 'bg-cream-50 border-cream-200';
-            case 'return': return 'bg-sage-50 border-sage-200';
-            default: return 'bg-cream-50 border-cream-200';
+            case 'sale': return 'success';
+            case 'rental': return 'warning';
+            case 'return': return 'default';
+            default: return 'secondary';
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-sage-50 relative">
-            <Aurora colorStops={["#5D866C", "#C2A68C", "#E6D8C3"]} blend={0.2} amplitude={0.6} speed={0.4} />
-
-            <header className="bg-white/90 backdrop-blur-sm border-b border-cream-200 shadow-sm relative z-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center space-x-4">
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => router.push('/admin')}
-                            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-cream-100">
-                            <ArrowLeft className="w-5 h-5 text-sage-600" />
-                        </motion.button>
-                        <div className="w-12 h-12 bg-gradient-to-br from-sage-500 to-sage-600 rounded-lg flex items-center justify-center shadow-lg">
-                            <Receipt className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-sage-800">Transactions</h1>
-                            <p className="text-sm text-sage-600">View all transactions from Supabase</p>
-                        </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+            {/* Header */}
+            <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center space-x-4">
+                    <Button variant="ghost" size="icon" onClick={() => router.push('/admin')}>
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                        <Receipt className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
+                        <p className="text-sm text-slate-500">View all transactions from database</p>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                        <p className="text-sm text-green-700">Total Sales</p>
-                        <p className="text-2xl font-bold text-green-800">${totals.sales.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-cream-100 rounded-lg p-4 border border-cream-200">
-                        <p className="text-sm text-sage-700">Total Rentals</p>
-                        <p className="text-2xl font-bold text-sage-800">${totals.rentals.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-sage-50 rounded-lg p-4 border border-sage-200">
-                        <p className="text-sm text-sage-700">Late Fees Collected</p>
-                        <p className="text-2xl font-bold text-sage-800">${totals.returns.toFixed(2)}</p>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                        <Card className="overflow-hidden">
+                            <CardContent className="p-0">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-slate-500">Total Sales</p>
+                                            <p className="text-3xl font-bold text-slate-900">${totals.sales.toFixed(2)}</p>
+                                        </div>
+                                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                                            <DollarSign className="w-7 h-7 text-white" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                        <Card className="overflow-hidden">
+                            <CardContent className="p-0">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-slate-500">Total Rentals</p>
+                                            <p className="text-3xl font-bold text-slate-900">${totals.rentals.toFixed(2)}</p>
+                                        </div>
+                                        <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30">
+                                            <TrendingUp className="w-7 h-7 text-white" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                        <Card className="overflow-hidden">
+                            <CardContent className="p-0">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-slate-500">Late Fees Collected</p>
+                                            <p className="text-3xl font-bold text-slate-900">${totals.returns.toFixed(2)}</p>
+                                        </div>
+                                        <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                                            <Clock className="w-7 h-7 text-white" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="h-1 bg-gradient-to-r from-indigo-500 to-violet-600" />
+                            </CardContent>
+                        </Card>
+                    </motion.div>
                 </div>
 
                 {/* Filter */}
                 <div className="flex space-x-2 mb-6">
                     {(['all', 'sale', 'rental', 'return'] as const).map(f => (
-                        <button key={f} onClick={() => setFilter(f)}
-                            className={`px-4 py-2 rounded-lg capitalize transition-all ${filter === f ? 'bg-sage-600 text-white' : 'bg-white text-sage-700 hover:bg-cream-100'}`}>
+                        <Button key={f} variant={filter === f ? 'default' : 'outline'} size="sm" onClick={() => setFilter(f)} className="capitalize">
                             {f}
-                        </button>
+                        </Button>
                     ))}
                 </div>
 
                 {/* Transactions List */}
-                {loading ? (
-                    <div className="flex items-center justify-center py-20">
-                        <Loader2 className="w-8 h-8 text-sage-600 animate-spin" />
-                    </div>
-                ) : filtered.length === 0 ? (
-                    <div className="text-center py-20">
-                        <Receipt className="w-16 h-16 text-cream-300 mx-auto mb-4" />
-                        <p className="text-sage-500">No transactions found</p>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {filtered.map((t, i) => (
-                            <motion.div key={`${t.type}-${t.id}`}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.02 }}
-                                className={`p-4 rounded-lg border ${getColor(t.type)} flex items-center justify-between`}>
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                                        {getIcon(t.type)}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-sage-800 capitalize">{t.type}</p>
-                                        <p className="text-sm text-sage-600">
-                                            {new Date(t.created_at).toLocaleString()}
-                                            {t.payment_method && ` • ${t.payment_method}`}
-                                            {t.status && ` • ${t.status}`}
-                                        </p>
-                                    </div>
-                                </div>
-                                <p className="text-lg font-bold text-sage-800">${Number(t.total).toFixed(2)}</p>
-                            </motion.div>
-                        ))}
-                    </div>
-                )}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                            Transaction History
+                            <Badge variant="secondary">{filtered.length} transactions</Badge>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loading ? (
+                            <div className="flex items-center justify-center py-20">
+                                <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+                            </div>
+                        ) : filtered.length === 0 ? (
+                            <div className="text-center py-20">
+                                <Receipt className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                                <p className="text-slate-400">No transactions found</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {filtered.map((t, i) => (
+                                    <motion.div key={`${t.type}-${t.id}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.02 }}
+                                        className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                                                {getIcon(t.type)}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center space-x-2">
+                                                    <p className="font-medium text-slate-900 capitalize">{t.type}</p>
+                                                    <Badge variant={getBadgeVariant(t.type) as any} className="text-xs">{t.type}</Badge>
+                                                </div>
+                                                <p className="text-sm text-slate-500">
+                                                    {new Date(t.created_at).toLocaleString()}
+                                                    {t.payment_method && ` • ${t.payment_method}`}
+                                                    {t.status && ` • ${t.status}`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <p className="text-lg font-bold text-slate-900">${Number(t.total).toFixed(2)}</p>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             </main>
         </div>
     );
+}
+
+export default function TransactionsPage() {
+    return <ProtectedRoute requiredRole="Admin"><TransactionsPageContent /></ProtectedRoute>;
 }

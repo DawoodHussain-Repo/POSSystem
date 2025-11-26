@@ -3,17 +3,26 @@
 ## ✅ Completed Features
 
 ### 🔐 Security & Authentication
+- **Route Protection**: All routes protected with role-based access control
+- **Auth Context**: Centralized authentication state management
+- **Session Management**: Secure session storage with automatic redirect
+- **Role-Based Access**:
+  - Admin routes: Only accessible by Admin users
+  - Cashier routes: Accessible by both Admin and Cashier users
+  - Public routes: Login page only
 - **Password Hashing**: All passwords stored as bcrypt hashes (10 salt rounds)
 - **Password Validation**: 8+ chars, uppercase, lowercase, number, special character
-- **Username Validation**: No numeric-only usernames (e.g., 110001), 4-20 chars, alphanumeric + underscore
+- **Username Validation**: No numeric-only usernames, 4-20 chars, alphanumeric + underscore
 - **Name Validation**: Letters, spaces, hyphens, apostrophes only
 - **Secure Login**: Database authentication with hash verification
+- **Automatic Redirect**: Unauthenticated users redirected to login
 
 ### 👥 Employee Management
 - Add/Edit/Delete employees with validation
 - Password strength requirements enforced
 - Proper error handling and user feedback
 - Real-time data from Supabase
+- Role badges (Admin/Cashier)
 
 ### 💰 Sales Transactions
 - Add items to cart with stock validation
@@ -26,21 +35,25 @@
 - **Database Storage**: All transactions saved to Supabase
 
 ### 📦 Rental Transactions
-- Customer verification by phone number
+- Customer verification by 11-digit phone number
 - Add rental items with stock validation
 - Set return dates
 - Payment with cash/card + cashback
 - Receipt with return date
 - Database storage with customer tracking
+- Auto-create customer if not exists
 
 ### 🔄 Return Processing
-- Customer lookup by phone
-- View active rentals
+- **Two Return Types**:
+  - Rental Return: Normal return with late fee calculation
+  - Unsatisfied Item Return: Full refund for defective items
+- Customer lookup by 11-digit phone
+- View active rentals from database
 - Select items to return
 - Calculate late fees (10% per day)
-- Payment processing for late fees
+- Payment processing for late fees or refund processing
 - Receipt generation
-- Database updates
+- **Database Updates**: Rental status changed to 'returned', stock restored
 
 ### 📊 Dashboard Statistics
 - **Real-time data from Supabase**:
@@ -48,15 +61,20 @@
   - Transaction count
   - Active rentals count
 - Auto-refresh on page load
+- Employee count stats (Admin dashboard)
 
-### 🎨 UI/UX Improvements
-- Aurora animated backgrounds
+### 🎨 UI/UX Improvements (shadcn-inspired)
+- Modern gradient color palette (Indigo/Violet/Emerald)
+- Glass morphism effects with backdrop blur
 - Smooth animations with Framer Motion
+- shadcn-style components (Button, Card, Input, Badge, Avatar)
 - Responsive design
-- Loading states
+- Loading states with spinners
 - Error notifications
 - Success confirmations
 - Professional receipt design
+- User avatar with initials
+- Role badges
 
 ## 📁 Project Structure
 
@@ -64,39 +82,50 @@
 pos-frontend/
 ├── app/
 │   ├── admin/
-│   │   ├── page.tsx (135 lines) - Employee management
+│   │   ├── page.tsx - Employee management (Protected: Admin)
 │   │   └── transactions/
-│   │       └── page.tsx (147 lines) - Transaction history
+│   │       └── page.tsx - Transaction history (Protected: Admin)
 │   ├── cashier/
-│   │   ├── page.tsx (156 lines) - Dashboard with real stats
-│   │   ├── sale/page.tsx (175 lines) - Sales processing
-│   │   ├── rental/page.tsx (185 lines) - Rental processing
-│   │   └── return/page.tsx (145 lines) - Return processing
-│   └── page.tsx (140 lines) - Login with database auth
+│   │   ├── page.tsx - Dashboard with real stats (Protected: Cashier)
+│   │   ├── sale/page.tsx - Sales processing (Protected: Cashier)
+│   │   ├── rental/page.tsx - Rental processing (Protected: Cashier)
+│   │   └── return/page.tsx - Return processing (Protected: Cashier)
+│   ├── globals.css - Modern CSS with CSS variables
+│   ├── layout.tsx - Root layout with AuthProvider
+│   └── page.tsx - Login page
 ├── components/
 │   ├── admin/
-│   │   ├── EmployeeCard.tsx (57 lines)
-│   │   └── EmployeeModal.tsx (176 lines)
+│   │   ├── EmployeeCard.tsx - Modern card design
+│   │   └── EmployeeModal.tsx - Add/Edit modal
+│   ├── auth/
+│   │   └── ProtectedRoute.tsx - Route protection wrapper
 │   ├── pos/
-│   │   ├── AddItemForm.tsx (51 lines)
-│   │   ├── CartItem.tsx (44 lines)
-│   │   └── CustomerVerification.tsx (73 lines)
+│   │   ├── AddItemForm.tsx
+│   │   ├── CartItem.tsx
+│   │   └── CustomerVerification.tsx
 │   └── ui/
-│       ├── Notification.tsx (28 lines)
-│       ├── PasswordInput.tsx (71 lines)
-│       ├── PaymentModal.tsx (248 lines)
-│       └── Receipt.tsx (200 lines)
+│       ├── avatar.tsx - Radix Avatar component
+│       ├── badge.tsx - Status badges
+│       ├── button.tsx - shadcn-style buttons
+│       ├── card.tsx - Glass morphism cards
+│       ├── input.tsx - Modern inputs with icons
+│       ├── Notification.tsx
+│       ├── PasswordInput.tsx
+│       ├── PaymentModal.tsx
+│       └── Receipt.tsx
 ├── lib/
 │   ├── api/
 │   │   ├── employees.ts - With validation & hashing
 │   │   ├── transactions.ts - CRUD operations
-│   │   └── customers.ts - Customer management
+│   │   ├── customers.ts - Customer management
+│   │   └── products.ts - Stock management
+│   ├── auth/
+│   │   └── AuthContext.tsx - Authentication context
 │   └── utils/
+│       ├── cn.ts - Class name utility (clsx + tailwind-merge)
 │       └── password.ts - Hashing & validation utilities
-└── scripts/
-    ├── init-database.mjs - Initialize data
-    ├── auto-setup.mjs - Setup helper
-    └── hash-password.mjs - Password hash generator
+└── supabase/
+    └── schema.sql - Database schema with RLS policies
 ```
 
 ## 🔑 Default Credentials
@@ -107,73 +136,46 @@ pos-frontend/
 
 ## 🚀 Setup Instructions
 
-1. **Run Schema in Supabase**:
+1. **Install Dependencies**:
    ```bash
-   npm run auto-setup
+   npm install
    ```
-   - Opens SQL Editor in browser
-   - Paste schema (already in clipboard)
-   - Click "Run"
 
-2. **Initialize Data**:
-   ```bash
-   npm run init-db
-   ```
-   - Inserts admin user
-   - Inserts 18 products
-   - Inserts 11 rental products
-   - Inserts 5 coupons
+2. **Configure Supabase**:
+   - Create a Supabase project
+   - Copy URL and anon key to `.env.local`
 
-3. **Start Development**:
+3. **Run Schema in Supabase SQL Editor**:
+   - Copy contents of `supabase/schema.sql`
+   - Paste and run in Supabase SQL Editor
+   - This creates tables, indexes, triggers, and RLS policies
+
+4. **Start Development**:
    ```bash
    npm run dev
    ```
 
-## 📋 Key Features
-
-### Payment Flow
-1. Select payment method (Cash/Card)
-2. Enter payment details
-   - Cash: Amount received → Calculate change
-   - Card: Card number + optional cashback
-3. Confirm payment details
-4. Process transaction (saves to database)
-5. Show beautiful receipt
-6. Return to dashboard
-
-### Receipt Features
-- Transaction ID
-- Date & time
-- Cashier name
-- Customer phone (for rentals/returns)
-- Itemized list
-- Subtotal, discounts, tax, late fees
-- Payment method
-- Change/cashback details
-- Print functionality
-- Professional design
-
-### Validation Rules
-- **Username**: 4-20 chars, no numbers-only, alphanumeric + underscore
-- **Password**: 8+ chars, uppercase, lowercase, number, special char
-- **Name**: 2-100 chars, letters/spaces/hyphens/apostrophes only
-
 ## 🔒 Security Features
-- ✅ Bcrypt password hashing
+- ✅ Route protection with ProtectedRoute component
+- ✅ Role-based access control (Admin/Cashier)
+- ✅ Auth context with session management
+- ✅ Automatic redirect for unauthenticated users
+- ✅ Bcrypt password hashing (10 salt rounds)
 - ✅ Input validation on all forms
 - ✅ SQL injection prevention (Supabase client)
 - ✅ Session storage for employee data
 - ✅ No plain text passwords
 - ✅ Reserved username blocking
+- ✅ RLS policies on all database tables
 
 ## 📊 Database Tables
 - `employees` - User accounts with hashed passwords
 - `products` - Sale items inventory
 - `rental_products` - Rental items inventory
-- `customers` - Customer records
+- `customers` - Customer records (11-digit phone)
 - `sales_transactions` - Sales records
 - `sales_transaction_items` - Sale line items
-- `rental_transactions` - Rental records
+- `rental_transactions` - Rental records with status
 - `rental_transaction_items` - Rental line items
 - `return_transactions` - Return records
 - `return_transaction_items` - Return line items
@@ -181,7 +183,9 @@ pos-frontend/
 - `employee_logs` - Activity tracking
 
 ## 🎯 Production Ready
-- ✅ Modular components (all under 250 lines)
+- ✅ Route protection on all pages
+- ✅ Role-based access control
+- ✅ Modular components
 - ✅ TypeScript for type safety
 - ✅ Error handling throughout
 - ✅ Loading states
@@ -193,6 +197,7 @@ pos-frontend/
 - ✅ Responsive design
 - ✅ Receipt generation
 - ✅ Real-time statistics
+- ✅ RLS database policies
 
 ## 📝 Notes
 - All transactions are saved to Supabase
@@ -201,3 +206,5 @@ pos-frontend/
 - Late fees calculated at 10% per day
 - Tax rate set at 6%
 - Discount coupons provide 10% off
+- Phone numbers must be 11 digits
+- Returns update rental status and restore stock

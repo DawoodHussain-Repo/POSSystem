@@ -1,40 +1,54 @@
-# SG Technologies - Point of Sale System (Next.js Frontend)
+# SG Technologies - Point of Sale System
 
-A modern, beautiful web-based Point of Sale system built with Next.js 15, React 19, TypeScript, and Tailwind CSS.
+A modern, secure, and beautiful web-based Point of Sale system built with Next.js 15, React 19, TypeScript, and Tailwind CSS.
 
 ## 🚀 Features
 
-### Authentication & Authorization
-- **Login System**: Secure authentication with role-based access
-- **Admin Dashboard**: Employee management (add, edit, delete employees)
-- **Cashier Dashboard**: Transaction processing interface
+### 🔐 Security & Authentication
+- **Route Protection**: All routes protected with role-based access control
+- **Password Hashing**: bcrypt with 10 salt rounds
+- **Session Management**: Secure session storage with automatic redirect
+- **Role-Based Access**: Admin and Cashier roles with appropriate permissions
 
-### Transaction Management
-- **Sales Processing**: 
-  - Add items to cart by ID
-  - Apply coupons (10% discount)
-  - Automatic tax calculation (6%)
-  - Multiple payment methods (Cash, Credit Card)
-  - Invoice generation
+### 👥 Employee Management
+- Add/Edit/Delete employees with validation
+- Password strength requirements enforced
+- Role assignment (Admin/Cashier)
+- Real-time data from Supabase
 
-- **Rental Management**:
-  - Customer verification via phone number
-  - Add rental items
-  - Set return dates
-  - Track rental history
+### 💰 Sales Transactions
+- Add items to cart with stock validation
+- Apply discount coupons (10% off)
+- Calculate tax (6%)
+- Cash/Card payment with cashback option
+- Receipt generation with print functionality
+- Database persistence
 
-- **Return Processing**:
-  - Customer lookup
-  - View active rentals
-  - Calculate late fees (10% per day)
-  - Process multiple returns
+### 📦 Rental Transactions
+- Customer verification by 11-digit phone
+- Auto-create customer if not exists
+- Add rental items with stock validation
+- Set return dates
+- Payment processing with receipts
 
-### UI/UX Features
-- **Modern Design**: Beautiful gradient backgrounds and smooth animations
-- **Responsive Layout**: Works on desktop, tablet, and mobile
-- **Real-time Updates**: Dynamic cart and summary calculations
-- **Session Recovery**: Resume incomplete transactions
-- **Statistics Dashboard**: View daily sales, transactions, and active rentals
+### 🔄 Return Processing
+- **Two Return Types**:
+  - Rental Return: Normal return with late fee calculation
+  - Unsatisfied Item Return: Full refund for defective items
+- Late fees calculated at 10% per day
+- Database updates (status change, stock restoration)
+
+### 📊 Dashboard Statistics
+- Real-time data from Supabase
+- Today's sales, transaction count, active rentals
+- Employee statistics (Admin dashboard)
+
+### 🎨 Modern UI/UX
+- shadcn-inspired component library
+- Glass morphism effects with backdrop blur
+- Smooth animations with Framer Motion
+- Responsive design for all devices
+- Modern gradient color palette (Indigo/Violet/Emerald)
 
 ## 🛠️ Technology Stack
 
@@ -42,134 +56,126 @@ A modern, beautiful web-based Point of Sale system built with Next.js 15, React 
 - **UI Library**: React 19
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
+- **Components**: Radix UI primitives
+- **Animations**: Framer Motion
 - **Icons**: Lucide React
-- **Font**: Inter (Google Fonts)
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: bcryptjs for password hashing
 
 ## 📦 Installation
 
-1. Navigate to the project directory:
 ```bash
+# Navigate to project
 cd pos-frontend
-```
 
-2. Install dependencies:
-```bash
+# Install dependencies
 npm install
-```
 
-3. Run the development server:
-```bash
+# Configure environment
+cp .env.local.example .env.local
+# Edit .env.local with your Supabase credentials
+
+# Run development server
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 🔐 Demo Credentials
+## 🗄️ Database Setup
 
-### Admin Access
-- **Username**: `admin`
-- **Password**: `1`
-- **Features**: Employee management, cashier view access
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Copy your project URL and anon key to `.env.local`
+3. Run the schema in Supabase SQL Editor:
+   - Copy contents of `supabase/schema.sql`
+   - Paste and run in SQL Editor
 
-### Cashier Access
-- **Username**: `cashier`
-- **Password**: `lehigh2016`
-- **Features**: Sales, rentals, returns processing
+## 🔑 Default Credentials
+
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | dawood90999 | 12E2d786@2 |
 
 ## 📁 Project Structure
 
 ```
 pos-frontend/
 ├── app/
-│   ├── page.tsx                 # Login page
-│   ├── layout.tsx               # Root layout
-│   ├── globals.css              # Global styles
-│   ├── admin/
-│   │   └── page.tsx             # Admin dashboard
-│   └── cashier/
-│       ├── page.tsx             # Cashier dashboard
-│       ├── sale/
-│       │   └── page.tsx         # Sales transaction
-│       ├── rental/
-│       │   └── page.tsx         # Rental transaction
-│       └── return/
-│           └── page.tsx         # Return processing
-├── public/                      # Static assets
-├── package.json
-├── tsconfig.json
-├── tailwind.config.ts
-└── next.config.ts
+│   ├── admin/           # Admin dashboard & transactions
+│   ├── cashier/         # Cashier dashboard & transactions
+│   ├── globals.css      # Global styles with CSS variables
+│   ├── layout.tsx       # Root layout with AuthProvider
+│   └── page.tsx         # Login page
+├── components/
+│   ├── admin/           # Admin-specific components
+│   ├── auth/            # Authentication components
+│   ├── pos/             # POS transaction components
+│   └── ui/              # Reusable UI components (shadcn-style)
+├── lib/
+│   ├── api/             # API functions for Supabase
+│   ├── auth/            # Authentication context
+│   └── utils/           # Utility functions
+└── supabase/
+    └── schema.sql       # Database schema with RLS policies
 ```
 
-## 🎨 Design Features
+## 🔒 Security Features
 
-### Color Scheme
-- **Primary**: Blue gradient (from-blue-600 to-purple-600)
-- **Sales**: Green gradient (from-green-500 to-emerald-600)
-- **Rentals**: Purple gradient (from-purple-500 to-pink-600)
-- **Returns**: Blue gradient (from-blue-500 to-cyan-600)
+- ✅ Route protection with ProtectedRoute component
+- ✅ Role-based access control (Admin/Cashier)
+- ✅ Auth context with session management
+- ✅ Bcrypt password hashing (10 salt rounds)
+- ✅ Input validation on all forms
+- ✅ SQL injection prevention (Supabase client)
+- ✅ RLS policies on all database tables
+- ✅ Automatic redirect for unauthorized access
 
-### Components
-- Gradient backgrounds with blur effects
-- Rounded cards with shadows
-- Smooth hover transitions
-- Icon-based navigation
-- Color-coded transaction types
+## 🎨 UI Components
 
-## 🔄 Business Logic
+The project includes a custom component library inspired by shadcn/ui:
 
-### Tax Calculation
-- Tax Rate: 6%
-- Applied after discounts
+- **Button**: Multiple variants (default, destructive, outline, success, warning)
+- **Card**: Glass morphism effect with hover animations
+- **Input**: Icon support with focus states
+- **Badge**: Status indicators with color variants
+- **Avatar**: User avatars with fallback initials
 
-### Coupon System
-- Coupon codes starting with 'C' (e.g., C001-C200)
-- 10% discount on subtotal
+## 📋 Business Rules
 
-### Late Fee Calculation
-- Formula: `itemPrice * 0.1 * daysLate`
-- Applied per day overdue
+| Rule | Value |
+|------|-------|
+| Tax Rate | 6% |
+| Coupon Discount | 10% |
+| Late Fee | 10% per day |
+| Phone Format | 11 digits |
+| Password Min Length | 8 characters |
 
-### Inventory Updates
-- Sales: Decrease stock
-- Rentals: Decrease stock
-- Returns: Increase stock
+## 🚧 Route Protection
 
-## 🚧 Future Enhancements
+| Route | Required Role |
+|-------|---------------|
+| `/` | Public |
+| `/admin` | Admin |
+| `/admin/transactions` | Admin |
+| `/cashier` | Cashier (Admin also allowed) |
+| `/cashier/sale` | Cashier |
+| `/cashier/rental` | Cashier |
+| `/cashier/return` | Cashier |
 
-This is a frontend implementation. To make it fully functional:
+## 📝 Documentation
 
-1. **Backend API**: Connect to REST API or GraphQL backend
-2. **Database**: Integrate with PostgreSQL/MySQL/MongoDB
-3. **Authentication**: Implement JWT or session-based auth
-4. **Real-time Updates**: Add WebSocket for live inventory
-5. **Reporting**: Add analytics and sales reports
-6. **Barcode Scanner**: Integrate barcode scanning
-7. **Receipt Printing**: Add thermal printer support
-8. **Multi-store**: Support multiple store locations
-
-## 📝 Notes
-
-- This is a reengineered version of the legacy Java desktop POS system
-- All data is currently mocked for demonstration purposes
-- Replace mock data with actual API calls for production use
-- Follows modern web development best practices
-- Implements responsive design principles
+- `IMPLEMENTATION_SUMMARY.md` - Complete feature list and setup guide
+- `SECURITY.md` - Security documentation and best practices
+- `DATABASE_SETUP.md` - Database configuration guide
+- `TROUBLESHOOTING.md` - Common issues and solutions
 
 ## 🤝 Contributing
-
-This project is part of a Software Reengineering course project. For contributions:
 
 1. Follow the existing code structure
 2. Use TypeScript for type safety
 3. Follow Tailwind CSS conventions
 4. Ensure responsive design
-5. Test on multiple browsers
-
-## 📄 License
-
-Educational project for Software Reengineering course - Fall 2025
+5. Add proper error handling
 
 ---
 
-**Built with ❤️ using Next.js and Tailwind CSS**
+**Built with ❤️ using Next.js, Tailwind CSS, and Supabase**

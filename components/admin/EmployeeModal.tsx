@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, User, Shield, ShoppingCart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import PasswordInput, { validatePassword } from '@/components/ui/PasswordInput';
 import type { Employee } from '@/lib/types';
 
@@ -41,33 +44,16 @@ export default function EmployeeModal({ isOpen, mode, employee, onClose, onSubmi
         e.preventDefault();
         setError('');
 
-        if (!name.trim()) {
-            setError('Name is required');
-            return;
-        }
-
+        if (!name.trim()) { setError('Name is required'); return; }
         if (mode === 'add') {
-            if (!username.trim()) {
-                setError('Username is required');
-                return;
-            }
-            if (!password) {
-                setError('Password is required');
-                return;
-            }
+            if (!username.trim()) { setError('Username is required'); return; }
+            if (!password) { setError('Password is required'); return; }
             const validation = validatePassword(password);
-            if (!validation.isValid) {
-                setError('Password does not meet requirements');
-                return;
-            }
+            if (!validation.isValid) { setError('Password does not meet requirements'); return; }
         }
-
         if (mode === 'edit' && password) {
             const validation = validatePassword(password);
-            if (!validation.isValid) {
-                setError('Password does not meet requirements');
-                return;
-            }
+            if (!validation.isValid) { setError('Password does not meet requirements'); return; }
         }
 
         setLoading(true);
@@ -76,117 +62,88 @@ export default function EmployeeModal({ isOpen, mode, employee, onClose, onSubmi
             onClose();
         } catch (err: any) {
             setError(err.message || 'Operation failed');
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
     if (!isOpen) return null;
 
     return (
         <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            >
-                <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
-                    className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 relative"
-                >
-                    <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-cream-100 rounded-lg">
-                        <X className="w-5 h-5 text-sage-600" />
-                    </button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}>
+                    <Card className="max-w-md w-full shadow-2xl border-0">
+                        <CardHeader className="relative pb-2">
+                            <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                                <X className="w-5 h-5 text-slate-500" />
+                            </button>
+                            <CardTitle className="text-xl">
+                                {mode === 'add' ? 'Add New Employee' : 'Update Employee'}
+                            </CardTitle>
+                            {mode === 'edit' && employee && (
+                                <p className="text-sm text-slate-500">Editing: @{employee.username}</p>
+                            )}
+                        </CardHeader>
+                        <CardContent>
+                            {error && (
+                                <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm">
+                                    {error}
+                                </div>
+                            )}
 
-                    <h3 className="text-xl font-bold text-sage-800 mb-2">
-                        {mode === 'add' ? 'Add New Employee' : 'Update Employee'}
-                    </h3>
-                    {mode === 'edit' && employee && (
-                        <p className="text-sm text-sage-600 mb-4">Editing: @{employee.username}</p>
-                    )}
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
+                                    <Input icon={<User className="w-4 h-4" />} value={name} onChange={(e) => setName(e.target.value)}
+                                        placeholder="Enter full name" required />
+                                </div>
 
-                    {error && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                            {error}
-                        </div>
-                    )}
+                                {mode === 'add' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">Username</label>
+                                        <Input value={username} onChange={(e) => setUsername(e.target.value)}
+                                            placeholder="Enter username" required />
+                                    </div>
+                                )}
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-sage-700 mb-2">Full Name</label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full px-4 py-3 border border-cream-300 rounded-lg focus:ring-2 focus:ring-sage-500 bg-cream-50"
-                                placeholder="Enter full name"
-                                required
-                            />
-                        </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                        {mode === 'add' ? 'Password' : 'New Password (leave blank to keep current)'}
+                                    </label>
+                                    <PasswordInput value={password} onChange={setPassword}
+                                        showValidation={mode === 'add' || password.length > 0}
+                                        placeholder={mode === 'add' ? 'Enter password' : 'Enter new password'} />
+                                </div>
 
-                        {mode === 'add' && (
-                            <div>
-                                <label className="block text-sm font-medium text-sage-700 mb-2">Username</label>
-                                <input
-                                    type="text"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full px-4 py-3 border border-cream-300 rounded-lg focus:ring-2 focus:ring-sage-500 bg-cream-50"
-                                    placeholder="Enter username"
-                                    required
-                                />
-                            </div>
-                        )}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Position</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                                            onClick={() => setPosition('Cashier')}
+                                            className={`p-3 rounded-xl border-2 transition-all flex items-center space-x-2 ${position === 'Cashier' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300'}`}>
+                                            <ShoppingCart className={`w-5 h-5 ${position === 'Cashier' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                            <span className={position === 'Cashier' ? 'text-emerald-700 font-medium' : 'text-slate-600'}>Cashier</span>
+                                        </motion.button>
+                                        <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                                            onClick={() => setPosition('Admin')}
+                                            className={`p-3 rounded-xl border-2 transition-all flex items-center space-x-2 ${position === 'Admin' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300'}`}>
+                                            <Shield className={`w-5 h-5 ${position === 'Admin' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                                            <span className={position === 'Admin' ? 'text-indigo-700 font-medium' : 'text-slate-600'}>Admin</span>
+                                        </motion.button>
+                                    </div>
+                                </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-sage-700 mb-2">
-                                {mode === 'add' ? 'Password' : 'New Password (leave blank to keep current)'}
-                            </label>
-                            <PasswordInput
-                                value={password}
-                                onChange={setPassword}
-                                showValidation={mode === 'add' || password.length > 0}
-                                placeholder={mode === 'add' ? 'Enter password' : 'Enter new password'}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-sage-700 mb-2">Position</label>
-                            <select
-                                value={position}
-                                onChange={(e) => setPosition(e.target.value as 'Admin' | 'Cashier')}
-                                className="w-full px-4 py-3 border border-cream-300 rounded-lg focus:ring-2 focus:ring-sage-500 bg-cream-50"
-                            >
-                                <option value="Cashier">Cashier</option>
-                                <option value="Admin">Admin</option>
-                            </select>
-                        </div>
-
-                        <div className="flex space-x-3 pt-4">
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                type="button"
-                                onClick={onClose}
-                                disabled={loading}
-                                className="flex-1 px-4 py-3 border border-cream-300 text-sage-700 rounded-lg hover:bg-cream-50 disabled:opacity-50"
-                            >
-                                Cancel
-                            </motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                type="submit"
-                                disabled={loading}
-                                className="flex-1 px-4 py-3 bg-gradient-to-r from-sage-500 to-sage-600 text-white rounded-lg hover:from-sage-600 hover:to-sage-700 disabled:opacity-50"
-                            >
-                                {loading ? 'Saving...' : mode === 'add' ? 'Add Employee' : 'Update'}
-                            </motion.button>
-                        </div>
-                    </form>
+                                <div className="flex space-x-3 pt-4">
+                                    <Button type="button" variant="outline" className="flex-1" onClick={onClose} disabled={loading}>
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" className="flex-1" disabled={loading}>
+                                        {loading ? 'Saving...' : mode === 'add' ? 'Add Employee' : 'Update'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
                 </motion.div>
             </motion.div>
         </AnimatePresence>

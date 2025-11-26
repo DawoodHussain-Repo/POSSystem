@@ -1,7 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Users, Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Shield, ShoppingCart } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { Employee } from '@/lib/types';
 
 interface EmployeeCardProps {
@@ -16,46 +20,41 @@ export default function EmployeeCard({ employee, index, onEdit, onDelete }: Empl
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: index * 0.1, type: "spring", stiffness: 300 }}
-            whileHover={{ y: -8, scale: 1.02 }}
-            className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-cream-200 p-6 hover:shadow-xl transition-all"
+            whileHover={{ y: -5 }}
         >
-            <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isAdmin ? 'bg-sage-100' : 'bg-cream-200'}`}>
-                        <Users className={`w-6 h-6 ${isAdmin ? 'text-sage-600' : 'text-cream-500'}`} />
+            <Card className="overflow-hidden">
+                <div className={`h-1 ${isAdmin ? 'bg-gradient-to-r from-indigo-500 to-violet-600' : 'bg-gradient-to-r from-emerald-500 to-teal-600'}`} />
+                <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                            <Avatar className="h-12 w-12">
+                                <AvatarFallback className={isAdmin ? 'bg-gradient-to-br from-indigo-500 to-violet-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'}>
+                                    {employee.name.charAt(0)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <h3 className="font-semibold text-slate-900">{employee.name}</h3>
+                                <p className="text-sm text-slate-500">@{employee.username}</p>
+                            </div>
+                        </div>
+                        <Badge variant={isAdmin ? 'default' : 'success'} className="flex items-center gap-1">
+                            {isAdmin ? <Shield className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
+                            {employee.position}
+                        </Badge>
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-sage-800">{employee.name}</h3>
-                        <p className="text-sm text-sage-600">@{employee.username}</p>
+                    <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(employee)}>
+                            <Edit className="w-4 h-4 mr-2" />Edit
+                        </Button>
+                        <Button variant="destructive" size="sm" className="flex-1" onClick={() => onDelete(employee)}>
+                            <Trash2 className="w-4 h-4 mr-2" />Delete
+                        </Button>
                     </div>
-                </div>
-                <span className={`px-3 py-1 rounded-lg text-xs font-medium ${isAdmin ? 'bg-sage-100 text-sage-700' : 'bg-cream-200 text-sage-700'}`}>
-                    {employee.position}
-                </span>
-            </div>
-            <div className="flex space-x-2">
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onEdit(employee)}
-                    className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-sage-50 text-sage-700 rounded-lg hover:bg-sage-100 transition-all"
-                >
-                    <Edit className="w-4 h-4" />
-                    <span>Edit</span>
-                </motion.button>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onDelete(employee)}
-                    className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-all"
-                >
-                    <Trash2 className="w-4 h-4" />
-                    <span>Delete</span>
-                </motion.button>
-            </div>
+                </CardContent>
+            </Card>
         </motion.div>
     );
 }

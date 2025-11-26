@@ -2,28 +2,38 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ShoppingBag, Tag } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Tag, Plus, Trash2, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Aurora from '@/components/Aurora';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import Notification from '@/components/ui/Notification';
 import PaymentModal from '@/components/ui/PaymentModal';
 import Receipt from '@/components/ui/Receipt';
-import AddItemForm from '@/components/pos/AddItemForm';
-import CartItem, { CartItemData } from '@/components/pos/CartItem';
 import { findProduct } from '@/lib/mockData';
 import { createSalesTransaction } from '@/lib/api/transactions';
 
 const TAX_RATE = 0.06;
 
-export default function SalePage() {
+interface CartItem {
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+}
+
+function SalePageContent() {
     const router = useRouter();
-    const [cart, setCart] = useState<CartItemData[]>([]);
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [itemId, setItemId] = useState('');
+    const [quantity, setQuantity] = useState('1');
     const [couponCode, setCouponCode] = useState('');
     const [discount, setDiscount] = useState(0);
     const [showPayment, setShowPayment] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
     const [receiptData, setReceiptData] = useState<any>(null);
-    const [processingPayment, setProcessingPayment] = useState(false);
     const [notification, setNotification] = useState({ type: 'success' as 'success' | 'error' | 'warning', message: '', visible: false });
 
     const showNotify = (type: 'success' | 'error', message: string) => {
@@ -31,20 +41,24 @@ export default function SalePage() {
         setTimeout(() => setNotification(n => ({ ...n, visible: false })), 3000);
     };
 
-    const handleAddItem = (itemId: string, quantity: number) => {
+    const handleAddItem = () => {
+        if (!itemId) return;
+        const qty = parseInt(quantity) || 1;
         const product = findProduct(itemId);
         if (!product) { showNotify('error', 'Product not found! Try: 1000-1009, 2000-2004, 3000-3002'); return; }
-        if (product.stock < quantity) { showNotify('error', `Insufficient stock! Available: ${product.stock}`); return; }
+        if (product.stock < qty) { showNotify('error', `Insufficient stock! Available: ${product.stock}`); return; }
 
         const existing = cart.findIndex(item => item.id === product.id);
         if (existing >= 0) {
             const updated = [...cart];
-            updated[existing].quantity += quantity;
+            updated[existing].quantity += qty;
             setCart(updated);
         } else {
-            setCart([...cart, { id: product.id, name: product.name, price: product.price, quantity }]);
+            setCart([...cart, { id: product.id, name: product.name, price: product.price, quantity: qty }]);
         }
         showNotify('success', `Added ${product.name}`);
+        setItemId('');
+        setQuantity('1');
     };
 
     const handleApplyCoupon = () => {
@@ -68,34 +82,16 @@ export default function SalePage() {
             const employeeId = employee.id || '1';
 
             const transaction = await createSalesTransaction(
-                employeeId,
-                cart,
-                subtotal,
-                discountAmount,
-                taxAmount,
-                total,
-                method,
+                employeeId, cart, subtotal, discountAmount, taxAmount, total, method,
                 discount > 0 ? 'COUPON10' : undefined
             );
 
-            // Prepare receipt data
             setReceiptData({
                 transactionId: transaction.id,
-                items: cart.map(item => ({
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: item.price,
-                    total: item.price * item.quantity
-                })),
-                subtotal,
-                discount: discountAmount,
-                tax: taxAmount,
-                total,
-                paymentMethod: method,
-                cashReceived,
-                change: cashReceived ? cashReceived - total : undefined,
-                cashback,
-                employeeName: employee.name
+                items: cart.map(item => ({ name: item.name, quantity: item.quantity, price: item.price, total: item.price * item.quantity })),
+                subtotal, discount: discountAmount, tax: taxAmount, total,
+                paymentMethod: method, cashReceived, change: cashReceived ? cashReceived - total : undefined,
+                cashback, employeeName: employee.name
             });
 
             setShowReceipt(true);
@@ -106,123 +102,138 @@ export default function SalePage() {
         }
     };
 
-    const handleReceiptClose = () => {
-        setShowReceipt(false);
-        router.push('/cashier');
-    };
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-sage-50 relative">
-            <Aurora colorStops={["#5D866C", "#C2A68C", "#E6D8C3"]} blend={0.3} amplitude={0.8} speed={0.3} />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
             <Notification type={notification.type} message={notification.message} isVisible={notification.visible} />
 
-            <header className="bg-white/90 backdrop-blur-sm border-b border-cream-200 shadow-sm relative z-10">
+            {/* Header */}
+            <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center space-x-4">
-                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => router.push('/cashier')}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-cream-100">
-                        <ArrowLeft className="w-5 h-5 text-sage-600" />
-                    </motion.button>
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg">
+                    <Button variant="ghost" size="icon" onClick={() => router.push('/cashier')}>
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
                         <ShoppingBag className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-sage-800">New Sale</h1>
-                        <p className="text-sm text-sage-600">Process sales transaction</p>
+                        <h1 className="text-2xl font-bold text-slate-900">New Sale</h1>
+                        <p className="text-sm text-slate-500">Process sales transaction</p>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
                         {/* Add Items */}
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                            className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-cream-200 p-6">
-                            <h2 className="text-lg font-semibold text-sage-800 mb-4">Add Items</h2>
-                            <AddItemForm onAdd={handleAddItem} placeholder="Enter Item ID (e.g., 1000)" buttonColor="green" />
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                            <Card>
+                                <CardHeader><CardTitle>Add Items</CardTitle></CardHeader>
+                                <CardContent>
+                                    <div className="flex space-x-3">
+                                        <Input placeholder="Item ID (e.g., 1000)" value={itemId} onChange={(e) => setItemId(e.target.value)} className="flex-1" />
+                                        <Input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-24" />
+                                        <Button onClick={handleAddItem} variant="success">
+                                            <Plus className="w-4 h-4 mr-2" />Add
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </motion.div>
 
                         {/* Cart */}
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                            className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-cream-200 p-6">
-                            <h2 className="text-lg font-semibold text-sage-800 mb-4">Cart ({cart.length})</h2>
-                            {cart.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <ShoppingBag className="w-16 h-16 text-cream-300 mx-auto mb-4" />
-                                    <p className="text-sage-500">No items in cart</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <AnimatePresence>
-                                        {cart.map((item, i) => (
-                                            <CartItem key={item.id} item={item} index={i} onRemove={(id) => setCart(cart.filter(c => c.id !== id))} />
-                                        ))}
-                                    </AnimatePresence>
-                                </div>
-                            )}
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center justify-between">
+                                        Cart <Badge variant="secondary">{cart.length} items</Badge>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {cart.length === 0 ? (
+                                        <div className="text-center py-12">
+                                            <ShoppingBag className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                                            <p className="text-slate-400">No items in cart</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <AnimatePresence>
+                                                {cart.map((item, i) => (
+                                                    <motion.div key={item.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+                                                        exit={{ opacity: 0, x: 20 }} transition={{ delay: i * 0.05 }}
+                                                        className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                                        <div>
+                                                            <p className="font-medium text-slate-900">{item.name}</p>
+                                                            <p className="text-sm text-slate-500">${item.price.toFixed(2)} × {item.quantity}</p>
+                                                        </div>
+                                                        <div className="flex items-center space-x-3">
+                                                            <p className="font-semibold text-slate-900">${(item.price * item.quantity).toFixed(2)}</p>
+                                                            <Button variant="ghost" size="icon" onClick={() => setCart(cart.filter(c => c.id !== item.id))}>
+                                                                <Trash2 className="w-4 h-4 text-rose-500" />
+                                                            </Button>
+                                                        </div>
+                                                    </motion.div>
+                                                ))}
+                                            </AnimatePresence>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
                         </motion.div>
 
                         {/* Coupon */}
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                            className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-cream-200 p-6">
-                            <h2 className="text-lg font-semibold text-sage-800 mb-4">Apply Coupon</h2>
-                            <div className="flex space-x-3">
-                                <input type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value)}
-                                    placeholder="Enter coupon code (e.g., C10OFF)"
-                                    className="flex-1 px-4 py-3 border border-cream-300 rounded-lg focus:ring-2 focus:ring-sage-500 bg-cream-50" />
-                                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleApplyCoupon}
-                                    className="px-6 py-3 bg-cream-300 text-sage-700 rounded-lg hover:bg-cream-400 flex items-center space-x-2">
-                                    <Tag className="w-5 h-5" /><span>Apply</span>
-                                </motion.button>
-                            </div>
-                            {discount > 0 && <p className="mt-2 text-green-600 text-sm">✓ 10% discount applied</p>}
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                            <Card>
+                                <CardHeader><CardTitle>Apply Coupon</CardTitle></CardHeader>
+                                <CardContent>
+                                    <div className="flex space-x-3">
+                                        <Input placeholder="Enter coupon code (e.g., C001)" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="flex-1" />
+                                        <Button variant="outline" onClick={handleApplyCoupon}>
+                                            <Tag className="w-4 h-4 mr-2" />Apply
+                                        </Button>
+                                    </div>
+                                    {discount > 0 && <Badge variant="success" className="mt-3">✓ 10% discount applied</Badge>}
+                                </CardContent>
+                            </Card>
                         </motion.div>
                     </div>
 
                     {/* Summary */}
                     <div className="lg:col-span-1">
-                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-                            className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-cream-200 p-6 sticky top-6">
-                            <h2 className="text-lg font-semibold text-sage-800 mb-6">Order Summary</h2>
-                            <div className="space-y-3 mb-6">
-                                <div className="flex justify-between text-sage-600"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-                                {discount > 0 && <div className="flex justify-between text-green-600"><span>Discount (10%)</span><span>-${discountAmount.toFixed(2)}</span></div>}
-                                <div className="flex justify-between text-sage-600"><span>Tax (6%)</span><span>${taxAmount.toFixed(2)}</span></div>
-                                <div className="border-t border-cream-200 pt-3">
-                                    <div className="flex justify-between text-xl font-bold text-sage-800"><span>Total</span><span>${total.toFixed(2)}</span></div>
-                                </div>
-                            </div>
-                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowPayment(true)}
-                                disabled={cart.length === 0}
-                                className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold disabled:opacity-50 shadow-lg">
-                                Proceed to Payment
-                            </motion.button>
+                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+                            <Card className="sticky top-24">
+                                <CardHeader><CardTitle>Order Summary</CardTitle></CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between text-slate-600"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+                                        {discount > 0 && <div className="flex justify-between text-emerald-600"><span>Discount (10%)</span><span>-${discountAmount.toFixed(2)}</span></div>}
+                                        <div className="flex justify-between text-slate-600"><span>Tax (6%)</span><span>${taxAmount.toFixed(2)}</span></div>
+                                        <div className="border-t border-slate-200 pt-3">
+                                            <div className="flex justify-between text-xl font-bold text-slate-900"><span>Total</span><span>${total.toFixed(2)}</span></div>
+                                        </div>
+                                    </div>
+                                    <Button className="w-full" size="lg" onClick={() => setShowPayment(true)} disabled={cart.length === 0}>
+                                        <CreditCard className="w-5 h-5 mr-2" />Proceed to Payment
+                                    </Button>
+                                </CardContent>
+                            </Card>
                         </motion.div>
                     </div>
                 </div>
             </main>
 
-            <PaymentModal isOpen={showPayment} total={total} onClose={() => setShowPayment(false)}
-                onComplete={handlePayment} title="Payment" allowCashback={true} />
+            <PaymentModal isOpen={showPayment} total={total} onClose={() => setShowPayment(false)} onComplete={handlePayment} title="Payment" allowCashback={true} />
 
             {receiptData && (
-                <Receipt
-                    isOpen={showReceipt}
-                    onClose={handleReceiptClose}
-                    type="sale"
-                    items={receiptData.items}
-                    subtotal={receiptData.subtotal}
-                    discount={receiptData.discount}
-                    tax={receiptData.tax}
-                    total={receiptData.total}
-                    paymentMethod={receiptData.paymentMethod}
-                    cashReceived={receiptData.cashReceived}
-                    change={receiptData.change}
-                    cashback={receiptData.cashback}
-                    transactionId={receiptData.transactionId}
-                    employeeName={receiptData.employeeName}
-                />
+                <Receipt isOpen={showReceipt} onClose={() => { setShowReceipt(false); router.push('/cashier'); }} type="sale"
+                    items={receiptData.items} subtotal={receiptData.subtotal} discount={receiptData.discount} tax={receiptData.tax}
+                    total={receiptData.total} paymentMethod={receiptData.paymentMethod} cashReceived={receiptData.cashReceived}
+                    change={receiptData.change} cashback={receiptData.cashback} transactionId={receiptData.transactionId} employeeName={receiptData.employeeName} />
             )}
         </div>
     );
+}
+
+export default function SalePage() {
+    return <ProtectedRoute requiredRole="Cashier"><SalePageContent /></ProtectedRoute>;
 }
