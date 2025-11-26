@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, UserPlus, Edit, Trash2, LogOut, ShoppingCart } from 'lucide-react';
 import { motion } from 'framer-motion';
+import UpdateEmployeeModal from '@/components/UpdateEmployeeModal';
 
 interface Employee {
     id: string;
@@ -19,6 +20,7 @@ export default function AdminDashboard() {
         { id: '110002', username: '110002', name: 'Debra Cooper', position: 'Cashier' },
     ]);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showUpdateModal, setShowUpdateModal] = useState(false);
 
     const handleLogout = () => router.push('/');
     const handleSwitchToCashier = () => router.push('/cashier');
@@ -26,6 +28,22 @@ export default function AdminDashboard() {
         if (confirm('Are you sure you want to delete this employee?')) {
             setEmployees(employees.filter(emp => emp.id !== id));
         }
+    };
+
+    const handleUpdateEmployee = (data: { username: string; name: string; password: string; position: string }) => {
+        const empIndex = employees.findIndex(e => e.username === data.username);
+        if (empIndex === -1) {
+            alert('Employee with such username doesn\'t exist');
+            return;
+        }
+        const updated = [...employees];
+        updated[empIndex] = {
+            ...updated[empIndex],
+            name: data.name,
+            position: data.position
+        };
+        setEmployees(updated);
+        alert('Employee updated successfully!');
     };
 
     return (
@@ -114,6 +132,7 @@ export default function AdminDashboard() {
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
+                                    onClick={() => setShowUpdateModal(true)}
                                     className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-sage-50 text-sage-700 rounded-lg hover:bg-sage-100 transition-all"
                                 >
                                     <Edit className="w-4 h-4" />
